@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>My root</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js"></script>
+  </head>
+  <style>
+	html {
+		width: 100%;
+		height: 100%;
+	}
+  </style>
+  <script type="module">
+import kaboom from "https://unpkg.com/kaboom/dist/kaboom.mjs";
+
+// Start game
+kaboom({
+	background: [ 135, 206, 235 ]
+})
+
+loadSprite("fox", "./sprites/fox.png", {
+	sliceX: 56,
+	// Define animations
+	anims: {
+		"idle": {
+			from: 0,
+			to: 4,
+			speed: 7,
+			loop: true,
+		},
+		"run": {
+			from: 19,
+			to: 26,
+			speed: 10,
+			loop: false,
+		},
+		"reverse-run": {
+			from: 5,
+			to: 7,
+			speed: 10,
+			loop: true,
+		},
+		"die": {
+			from: 50,
+			to: 55,
+			speed: 10,
+			loop: false,
+		},
+		"sleep": {
+			from: 43,
+			to: 47,
+			speed: 3,
+			loop: true,
+		},
+		"jump": {
+			from: 30,
+			to: 34,
+			speed: 5,
+			loop: false,
+		},
+	},
+})
+
+loadSprite("dirt", "./sprites/dirt.png")
+loadSprite("fulldirt", "./sprites/fulldirt.png")
+
+const level = addLevel([
+	// Design the level layout with symbols
+	" ",
+	" @ ",
+	" ",
+	" ",
+	" ",
+	" ",
+	" ",
+	"                  ==",
+	"            ==    --",
+	"==================--=============",
+	"---------------------------------",
+	"---------------------------------",
+	"---------------------------------",
+], {
+	// The size of each grid
+	width: 64,
+	height: 64,
+	// The position of the top q dirt
+	pos: vec2(0, 650),
+	// Define what each symbol means (in components)
+	"@": () => [
+		sprite("fox"),
+		area(),
+		body(),
+		scale(5),
+		origin("bot"),
+		"player",
+	],
+	"=": () => [
+		sprite("dirt"),
+		area(),
+		solid(),
+		origin("bot"),
+	],
+	"-": () => [
+		sprite("fulldirt"),
+		area(),
+		solid(),
+		origin("bot"),
+	],
+})
+
+// scene("game", ({ levelId, coins } = { levelId: 0, coins: 0 }) => {
+// 	const SPEED = 480
+// 	gravity(1600)
+
+// })
+
+const SPEED = 480
+gravity(1600)
+const player = get("player")[0]
+
+player.onGround(() => {
+	if (!isKeyDown("q") && !isKeyDown("d")) {
+		player.play("idle")
+	} else {
+		player.play("run")
+	}
+})
+
+// Movements
+onKeyPress("space", () => {
+	if (player.isGrounded()) {
+		player.jump()
+		player.play("jump")
+	}
+})
+
+onKeyPress("s", () => {
+	if (player.isGrounded()) {
+		player.play("sleep")
+	}
+})
+
+onKeyPress("r", () => {
+	if (player.isGrounded()) {
+		player.play("die")
+		player.pos = level.getPos(0, 0)
+	}
+})
+
+onKeyDown("q", () => {
+	player.move(-SPEED, 0)
+	if (player.isGrounded() && player.curAnim() !== "run") {
+		player.play("run")
+	}
+})
+
+onKeyDown("d", () => {
+	player.move(SPEED, 0)
+	if (player.isGrounded() && player.curAnim() !== "run") {
+		player.play("run")
+	}
+})
+
+onKeyRelease(["q", "d"], () => {
+	// Only reset to "idle" if player is not holding any of these keys
+	if (player.isGrounded() && !isKeyDown("q") && !isKeyDown("d")) {
+		player.play("idle")
+	}
+})
+
+player.onUpdate(() => {
+	// Set the viewport center to player.pos
+	camPos(player.pos)
+})
+
+// Back to the original position if hit a "danger" item
+player.onCollide("danger", () => {
+	player.pos = level.getPos(0, 0)
+})
+
+// Eat the coin!
+player.onCollide("coin", (coin) => {
+
+// scene("lose", () => {
+// 	add([
+// 		text("You Lose"),
+// 	])
+// 	onKeyPress(() => go("game"))
+// })
+
+// scene("win", () => {
+// 	add([
+// 		text("You Win"),
+// 	])
+// 	onKeyPress(() => go("game"))
+// })
+
+// go("game")
+})
+
+</script>
+<body>
+    
+</body>
+</html>
