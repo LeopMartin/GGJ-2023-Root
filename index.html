@@ -59,27 +59,44 @@ loadSprite("fox", "./sprites/Foxy.png", {
 
 loadSprite("dirt", "./sprites/dirt.png")
 loadSprite("fulldirt", "./sprites/fulldirt.png")
+loadSprite("coblestone", "./sprites/coblestone.png")
+loadSprite("stone", "./sprites/stone.png")
+loadSprite("door", "./sprites/door.png")
+loadSprite("lava", "./sprites/lava.png")
+loadSprite("barriere", "./sprites/barriere.png")
 
-const level = addLevel([
-	// Design the level layout with symbols
-	" ",
-	" ",
-	" ",
-	"                ===      ",
-	"                             =",
-	"                      == ",
-	"                  ==",
-	"            ==    --",
-	"=  =========--====--=============",
-	"---------------------------------==========================================================================================",
-	"---------------------------------------------------------------------------------------------------------------------------------",
-	"---------------------------------",
-], {
+const LEVELS = [
+	[
+	" c",
+	" c",
+	" c",
+	" c",
+	" c",
+	" c",
+	" c                ggg      ",
+	" c                             g",
+	" c                      gg ",
+	" c                  gg",
+	" c            gg    ",
+	" cgggslllsggggddggggddggggggggggggg",
+	" cddddsssddddddddddddddddddddddddddgggggggggggggggggggggg",
+	" cdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+	" csssssssssssssssssssssssssssssssssssssssssssssssssssss",
+	],
+]
+const JUMP_FORCE = 800
+const SPEED = 480
+let JUMP_DIRECTION = false
+let POWER = 1
+
+
+scene("game", ({ levelIdx, score }) => {
+const level = addLevel(LEVELS[levelIdx || 0], {
 	// The size of each grid
 	width: 64,
 	height: 64,
 	// The position of the top q dirt
-	pos: vec2(0, 1200),
+	pos: vec2(-10, 1200),
 	// Define what each symbol means (in components)
 	"@": () => [
 		sprite("fox"),
@@ -89,30 +106,46 @@ const level = addLevel([
 		origin("bot"),
 		"player",
 	],
-	"=": () => [
+	"g": () => [
 		sprite("dirt"),
 		area(),
 		solid(),
 		origin("bot"),
 	],
-	"-": () => [
+	"d": () => [
 		sprite("fulldirt"),
 		area(),
 		solid(),
 		origin("bot"),
 	],
+	"s": () => [
+		sprite("stone"),
+		area(),
+		solid(),
+		origin("bot"),
+	],
+	"c": () => [
+		sprite("coblestone"),
+		area(),
+		solid(),
+		origin("bot"),
+	],
+	"l": () => [
+		sprite("lava"),
+		area(),
+		solid(),
+		origin("bot"),
+		"danger",
+	],
 })
 
-const JUMP_FORCE = 800
-const SPEED = 480
-let JUMP_DIRECTION = false
 gravity(1600)
 const player = add([
 		sprite("fox"),
 		scale(4),
 		area(),
 		origin("center"),
-		pos(0, 0),
+		pos(150, 1100),
 		body({ jumpForce: JUMP_FORCE, }),
 		rotate(0),
 	])
@@ -127,10 +160,16 @@ player.onGround(() => {
 
 // Movements
 onKeyPress("space", () => {
-	if (player.isGrounded()) {
-		player.jump()
+	if (POWER == 1) {
+		player.doubleJump()
 		player.flipX(JUMP_DIRECTION)
 		player.play("jump")
+	} else {
+		if (player.isGrounded()) {
+			player.jump()
+			player.flipX(JUMP_DIRECTION)
+			player.play("jump")
+		}
 	}
 })
 
@@ -179,8 +218,113 @@ player.onUpdate(() => {
 
 // Back to the original position if hit a "danger" item
 player.onCollide("danger", () => {
-	player.pos = level.getPos(0, 0)
+	player.play("die")
+	go("lose")
 })
+
+})
+
+
+function addButton(txt, p, f) {
+
+const btn = add([
+	text(txt, {
+		font: "sink",
+		size: 48,
+		width: width() - 24 * 2,
+		lineSpacing: 8,
+		letterSpacing: 4,
+	}),
+	pos(p),
+	area({ cursor: "pointer", }),
+	origin("center"),
+])
+
+btn.onClick(f)
+
+btn.onUpdate(() => {
+	if (btn.isHovering()) {
+		const t = time() * 10
+		btn.color = rgb(
+			wave(0, 255, t),
+			wave(0, 255, t + 2),
+			wave(0, 255, t + 4),
+		)
+	} else {
+		btn.scale = vec2(1)
+		btn.color = rgb()
+	}
+})
+
+}
+
+scene("menu", () => {
+add([
+	text("The Root", {
+		font: "sink",
+		size: 48,
+		width: width() - 24 * 2,
+		lineSpacing: 8,
+		letterSpacing: 4,
+	}),
+	origin("center"),
+	pos(vec2((width() / 2), 200)),
+])
+addButton("Starting", vec2((width() / 2), (height() / 2)), () => go("game", {
+	levelIdx: 0,
+	score: 0,
+}))
+addButton("Quit", vec2((width() / 2), (height() / 2) + 100), () => debug.log("bah non mdr ?"))
+onUpdate(() => cursor("default"))
+})
+
+scene("lose", () => {
+	add([
+	text("You'r died", {
+		font: "sink",
+		size: 48,
+		width: width() - 24 * 2,
+		lineSpacing: 8,
+		letterSpacing: 4,
+	}),
+	origin("center"),
+	pos(vec2((width() / 2), 200)),
+])
+
+// Press any key to go back
+onKeyPress(restart)
+})
+
+scene("win", () => {
+
+add([
+	text("Win", {
+		font: "sink",
+		size: 48,
+		width: width() - 24 * 2,
+		lineSpacing: 8,
+		letterSpacing: 4,
+	}),
+	origin("center"),
+	pos(vec2((width() / 2), 200)),
+])
+
+onKeyPress(start)
+
+})
+
+function start() {
+	go("menu")
+}
+
+function restart() {
+	go("game", {
+	levelIdx: 0,
+	score: 0,
+})
+}
+
+start()
 
 </script>
 <body>
