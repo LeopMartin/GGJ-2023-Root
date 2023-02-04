@@ -20,13 +20,13 @@ kaboom({
 	background: [ 135, 206, 235 ]
 })
 
-loadSprite("fox", "./sprites/fox.png", {
+loadSprite("fox", "./sprites/Foxy.png", {
 	sliceX: 56,
 	// Define animations
 	anims: {
 		"idle": {
-			from: 0,
-			to: 4,
+			from: 5,
+			to: 18,
 			speed: 7,
 			loop: true,
 		},
@@ -35,12 +35,6 @@ loadSprite("fox", "./sprites/fox.png", {
 			to: 26,
 			speed: 10,
 			loop: false,
-		},
-		"reverse-run": {
-			from: 5,
-			to: 7,
-			speed: 10,
-			loop: true,
 		},
 		"die": {
 			from: 50,
@@ -69,24 +63,23 @@ loadSprite("fulldirt", "./sprites/fulldirt.png")
 const level = addLevel([
 	// Design the level layout with symbols
 	" ",
-	" @ ",
 	" ",
 	" ",
-	" ",
-	" ",
-	" ",
+	"                ===      ",
+	"                             =",
+	"                      == ",
 	"                  ==",
 	"            ==    --",
-	"==================--=============",
-	"---------------------------------",
-	"---------------------------------",
+	"=  =========--====--=============",
+	"---------------------------------==========================================================================================",
+	"---------------------------------------------------------------------------------------------------------------------------------",
 	"---------------------------------",
 ], {
 	// The size of each grid
 	width: 64,
 	height: 64,
 	// The position of the top q dirt
-	pos: vec2(0, 650),
+	pos: vec2(0, 1200),
 	// Define what each symbol means (in components)
 	"@": () => [
 		sprite("fox"),
@@ -110,15 +103,19 @@ const level = addLevel([
 	],
 })
 
-// scene("game", ({ levelId, coins } = { levelId: 0, coins: 0 }) => {
-// 	const SPEED = 480
-// 	gravity(1600)
-
-// })
-
+const JUMP_FORCE = 800
 const SPEED = 480
+let JUMP_DIRECTION = false
 gravity(1600)
-const player = get("player")[0]
+const player = add([
+		sprite("fox"),
+		scale(4),
+		area(),
+		origin("center"),
+		pos(0, 0),
+		body({ jumpForce: JUMP_FORCE, }),
+		rotate(0),
+	])
 
 player.onGround(() => {
 	if (!isKeyDown("q") && !isKeyDown("d")) {
@@ -132,6 +129,7 @@ player.onGround(() => {
 onKeyPress("space", () => {
 	if (player.isGrounded()) {
 		player.jump()
+		player.flipX(JUMP_DIRECTION)
 		player.play("jump")
 	}
 })
@@ -145,21 +143,25 @@ onKeyPress("s", () => {
 onKeyPress("r", () => {
 	if (player.isGrounded()) {
 		player.play("die")
-		player.pos = level.getPos(0, 0)
+		// player.pos = level.getPos(0, 0)
 	}
 })
 
 onKeyDown("q", () => {
 	player.move(-SPEED, 0)
+	player.flipX(true)
 	if (player.isGrounded() && player.curAnim() !== "run") {
 		player.play("run")
+		JUMP_DIRECTION = true
 	}
 })
 
 onKeyDown("d", () => {
 	player.move(SPEED, 0)
+	player.flipX(false)
 	if (player.isGrounded() && player.curAnim() !== "run") {
 		player.play("run")
+		JUMP_DIRECTION = false
 	}
 })
 
@@ -180,28 +182,7 @@ player.onCollide("danger", () => {
 	player.pos = level.getPos(0, 0)
 })
 
-// Eat the coin!
-player.onCollide("coin", (coin) => {
-
-// scene("lose", () => {
-// 	add([
-// 		text("You Lose"),
-// 	])
-// 	onKeyPress(() => go("game"))
-// })
-
-// scene("win", () => {
-// 	add([
-// 		text("You Win"),
-// 	])
-// 	onKeyPress(() => go("game"))
-// })
-
-// go("game")
-})
-
 </script>
 <body>
-    
 </body>
 </html>
