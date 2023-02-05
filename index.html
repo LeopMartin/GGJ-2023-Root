@@ -64,40 +64,93 @@ loadSprite("stone", "./sprites/stone.png")
 loadSprite("door", "./sprites/door.png")
 loadSprite("lava", "./sprites/lava.png")
 loadSprite("barriere", "./sprites/barriere.png")
+loadSprite("slime", "./sprites/slime.png")
+loadSprite("timi", "./sprites/timi.png")
+loadSprite("root", "./sprites/root.png")
+
+const characters = {
+	"a": {
+		sprite: "timi",
+		msg: "ohhi how are you?",
+	},
+	"b": {
+		sprite: "timi",
+		msg: "get out!",
+	},
+}
 
 const LEVELS = [
 	[
-	" c",
-	" c",
-	" c",
-	" c",
-	" c",
-	" c",
-	" c                ggg      ",
-	" c                             g",
-	" c                      gg ",
-	" c                  gg",
-	" c            gg    ",
-	" cgggslllsggggddggggddggggggggggggg",
-	" cddddsssddddddddddddddddddddddddddgggggggggggggggggggggg",
-	" cdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-	" csssssssssssssssssssssssssssssssssssssssssssssssssssss",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                m                                       c",
+	" c                ssss                                    c",
+	" c                                                        c",
+	" c                          ttttllll                      c",
+	" c                        t                               c",
+	" c                                                        c",
+	" c                                                       hc",
+	" c                ggg                            sssssssssc",
+	" c                             g                 sssssssssc",
+	" c                   e  gg                     sccccccccccc",
+	" c             e    gg                    llllcccccccccccccc",
+	" c         a  gg         t     e     scccccccccccccccccccccc",
+	" cgggslllsggggddggggddggggggggggggggggggggggggggggggggggggc",
+	" cddddsssdddddddddddddddddddddddddddddddddddddddddddddddddc",
+	" cddddddddddddddddddddddddddddddddddddddddddddddddddddddddc",
+	" cssssssssssssssssssssssssssssssssssssssssssssssssssssssssc",
+	],
+	[
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c                                                        c",
+	" c              b                                        hc",
+	" cgggslllsggggddggggddgggc         gggggggggggggggggggggggc",
+	" cddddsssddddddddddddddddd         dddddddddddddddddddddddc",
+	" cdddddddddddddddddddddddd         ddddddddddddddddddddddddc",
+	" cssssssssssssssssssssssss         csssssssssssssssssssssssc",
 	],
 ]
 const JUMP_FORCE = 800
 const SPEED = 480
 let JUMP_DIRECTION = false
-let POWER = 1
+let POWER = 0
+const FALL_DEATH = 3000
 
+const patrol = (speed = 60, dir = 1) => {
+	return {
+		id: "patrol",
+		require: [ "pos", "area", ],
+		add() {
+			this.on("collide", (obj, col) => {
+				if (col.isLeft() || col.isRight()) {
+					dir = -dir
+				}
+			})
+		},
+		update() {
+			this.move(speed * dir, 0)
+		},
+	}
+}
 
 scene("game", ({ levelIdx, score }) => {
+
 const level = addLevel(LEVELS[levelIdx || 0], {
-	// The size of each grid
 	width: 64,
 	height: 64,
-	// The position of the top q dirt
-	pos: vec2(-10, 1200),
-	// Define what each symbol means (in components)
+	pos: vec2(0, 0),
 	"@": () => [
 		sprite("fox"),
 		area(),
@@ -137,6 +190,48 @@ const level = addLevel(LEVELS[levelIdx || 0], {
 		origin("bot"),
 		"danger",
 	],
+	"e": () => [
+		sprite("slime"),
+		area(),
+		solid(),
+		body(),
+		origin("bot"),
+		patrol(),
+		"enemy",
+	],
+	"t": () => [
+		sprite("barriere"),
+		area(),
+		solid(),
+		origin("bot"),
+	],
+	"h": () => [
+		sprite("door"),
+		area(),
+		solid(),
+		origin("bot"),
+		"tp",
+	],
+	"m": () => [
+		sprite("root"),
+		area(),
+		solid(),
+		origin("bot"),
+		"root",
+	],
+	any(ch) {
+		const char = characters[ch]
+		if (char) {
+			return [
+				sprite(char.sprite),
+				area(),
+				solid(),
+				origin("bot"),
+				"character",
+				{ msg: char.msg, },
+			]
+		}
+	},
 })
 
 gravity(1600)
@@ -145,10 +240,54 @@ const player = add([
 		scale(4),
 		area(),
 		origin("center"),
-		pos(150, 1100),
+		pos(200, 100),
 		body({ jumpForce: JUMP_FORCE, }),
 		rotate(0),
 	])
+
+	function addDialog() {
+		const x = camPos()[0]
+		const y = camPos()[1]
+		const pad = 16
+		const h = 160
+		const txt = add([
+			text("", {
+				font: "sinko",
+				size: 28,
+				width: width() - 24 * 2,
+			}),
+			pos(camPos()),
+			z(100),
+		])
+		txt.hidden = true
+		return {
+			say(t) {
+				txt.text = t
+				txt.hidden = false
+			},
+			dismiss() {
+				if (!this.active()) {
+					return
+				}
+				txt.text = ""
+				txt.hidden = true
+			},
+			active() {
+				return !txt.hidden
+			},
+			destroy() {
+				bg.destroy()
+				txt.destroy()
+			},
+		}
+	}
+
+
+	player.onCollide("character", (ch) => {
+		dialog.say(ch.msg)
+	})
+
+	let dialog = addDialog()
 
 player.onGround(() => {
 	if (!isKeyDown("q") && !isKeyDown("d")) {
@@ -164,7 +303,7 @@ onKeyPress("space", () => {
 		player.doubleJump()
 		player.flipX(JUMP_DIRECTION)
 		player.play("jump")
-	} else {
+	} else if (POWER == 0) {
 		if (player.isGrounded()) {
 			player.jump()
 			player.flipX(JUMP_DIRECTION)
@@ -182,7 +321,6 @@ onKeyPress("s", () => {
 onKeyPress("r", () => {
 	if (player.isGrounded()) {
 		player.play("die")
-		// player.pos = level.getPos(0, 0)
 	}
 })
 
@@ -204,22 +342,71 @@ onKeyDown("d", () => {
 	}
 })
 
+onKeyPress("d", () => {
+	dialog.dismiss()
+	dialog = addDialog()
+})
+
+onKeyPress("q", () => {
+	dialog.dismiss()
+	dialog = addDialog()
+})
+
+onKeyPress("space", () => {
+	dialog.dismiss()
+	dialog = addDialog()
+})
+
 onKeyRelease(["q", "d"], () => {
-	// Only reset to "idle" if player is not holding any of these keys
 	if (player.isGrounded() && !isKeyDown("q") && !isKeyDown("d")) {
 		player.play("idle")
 	}
 })
 
 player.onUpdate(() => {
-	// Set the viewport center to player.pos
 	camPos(player.pos)
+	if (player.pos.y >= FALL_DEATH) {
+		go("lose")
+	}
 })
 
-// Back to the original position if hit a "danger" item
 player.onCollide("danger", () => {
 	player.play("die")
 	go("lose")
+})
+
+player.onCollide("root", (r) => {
+	POWER = 1
+	destroy(r)
+})
+
+player.onCollide("enemy", (e, col) => {
+	if (col.isLeft() || col.isRight()) {
+		player.play("die")
+		go("lose")
+	}
+})
+
+player.onCollide("tp", (e, col) => {
+	if (col.isLeft() || col.isRight()) {
+		levelIdx++
+		go("game", {
+			levelIdx: 1,
+			score: 0,
+		})
+	}
+})
+
+player.onGround((l) => {
+	if (l.is("enemy")) {
+		player.jump(JUMP_FORCE * 1.5)
+		player.play("jump")
+		destroy(l)
+	}
+})
+
+onKeyPress("f", () => {
+		fullscreen(!fullscreen())
 })
 
 })
